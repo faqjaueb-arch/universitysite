@@ -1,0 +1,373 @@
+/* ----------------------------------------------------------------
+	Custom CSS
+
+	Add all your Custom Styled CSS here for New Styles or
+	Overwriting Default Theme Styles for Better Handling Updates
+-----------------------------------------------------------------*/
+.portfolio-ajax-modal, .shop-quick-view-ajax {
+	width: auto!important;
+	max-width: 1000px!important
+}
+.scw-switcher-wrap, .scw-trigger-icon {
+	position: fixed;
+	left: auto;
+	background-color: #fff
+}
+.scw-trigger-icon {
+	width: 44px;
+	height: 44px;
+	top: 121px;
+	right: 26px;
+	border: 0;
+	padding: 0;
+	text-align: center;
+	z-index: 5;
+	cursor: pointer
+}
+.scw-trigger-icon i {
+	font-size: 18px
+}
+.scw-switcher-wrap.scw-switcher-open i:nth-of-type(1), .scw-switcher-wrap:not(.scw-switcher-open) i:nth-of-type(2) {
+	display: none
+}
+.scw-switcher-wrap {
+	top: 120px;
+	right: 25px;
+	padding: 23px;
+	width: 0;
+	height: 0;
+	border: 1px solid rgba(0, 0, 0, .09);
+	border-radius: 3px;
+	box-shadow: 0 13px 42px 11px rgba(0, 0, 0, .05);
+	z-index: 9999;
+	overflow: hidden;
+	-webkit-transition: all .45s ease;
+	-o-transition: all .45s ease;
+	transition: all .45s ease
+}
+.scw-switcher-wrap.scw-switcher-open {
+	width: 300px;
+	height: 70%;
+	padding: 35px 25px;
+	overflow-y: scroll
+}
+.scw-switcher-wrap .widget {
+	margin: 0
+}
+.scw-switcher-wrap .line, .scw-switcher-wrap .widget {
+	opacity: 0;
+	-webkit-transition: opacity 0s ease;
+	-o-transition: opacity 0s ease;
+	transition: opacity 0s ease
+}
+.scw-switcher-wrap.scw-switcher-open .line, .scw-switcher-wrap.scw-switcher-open .widget {
+	opacity: 1;
+	-webkit-transition: opacity .3s .4s ease;
+	-o-transition: opacity .3s .4s ease;
+	transition: opacity .3s .4s ease
+}
+.scw-switcher-wrap .widget h4 {
+	font-size: 14px;
+	letter-spacing: 1px;
+	margin-bottom: 15px
+}
+.scw-switcher-wrap .btn-container {
+	margin: 0 -5px -5px 0
+}
+.scw-switcher-wrap .btn {
+	margin: 0 5px 5px 0
+}
+.scw-switcher-wrap .row {
+	margin: 0 -5px
+}
+.scw-switcher-wrap .col-6 {
+	padding: 5px
+}
+.last
+{
+	margin: 0px;
+}
+
+.naslovna-prva-slika
+{
+
+width:fit-content; 
+width: -moz-fit-content;
+
+width : 630px !important;
+
+
+height: 315px !important;
+//max-height: 315px;
+margin:0 auto !important;
+overflow:hidden;
+
+}
+
+.naslovna-druga-slika
+{
+/*
+width:fit-content; 
+width: -moz-fit-content;
+*/
+width : auto !important;
+max-height: 280px;
+margin:0 auto;
+
+}
+
+.maxheightinner {
+max-height: 400px !important;
+float: left;
+margin : 5px 20px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Document listing item */
+.document-listing {
+	margin-bottom: 30px;
+	border-bottom: 1px solid #eeeeee;
+}
+.document-listing-item {
+	display: flex;
+	align-items: center;
+	align-content: center;
+	border-top: 1px solid #eeeeee;
+}
+.file-name {
+	margin: 0;
+	padding: 25px 0;
+	color: #0860a2;
+	font-size: 16px;
+	flex: 1;
+}
+.document-listing-item .icon {
+	width: 32px;
+	height: 32px;
+	margin-right: 12px;
+	border-radius: 50%;
+	background: #0860a2;
+	color: white;
+	text-align: center;
+	font-size: 17px;
+	line-height: 30px;
+}
+.document-listing-item .download {
+	margin-left: auto;
+	background: #09375c;
+	color: white;
+	padding: 6px 15px;
+	border-radius: 3px;
+	text-transform: uppercase;
+	font-weight: 600;
+	font-size: 13px;
+	transition: all 0.3s;
+	-webkit-transition: all 0.3s;
+	-moz-transition: all 0.3s;
+	-ms-transition: all 0.3s;
+}
+
+.document-listing-item:hover {
+	text-decoration: none;
+}
+.document-listing-item:hover .file-name {
+	text-decoration: underline;
+}
+
+.document-listing-item:hover .download {
+	background: #0860a2;
+}
+
+
+
+.osoblje-kocka {
+	background: #f7f5f3;
+	border-bottom: 2px solid #003b7d;
+	display: block;
+	width: 100%;
+}
+
+.osoblje-kocka-naslov {
+	padding: 20px 18px;
+	color: #003b7d;
+	font-weight: 500;
+}
+
+#radovi_wrapper {
+	overflow: hidden;
+}
+
+/* Bottom right text */
+.text-block {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  left:20px;	
+  background-color: black;
+  color: white;
+  padding-left: 20px;
+  padding-right: 20px;
+opacity: 0.5;
+}
+
+.frame: 
+{
+border : 1px solid red;
+}
+
+.coverNewsContent{
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-align: justify;
+	
+}
+
+.coverNewsContent:before {
+  content:'';
+  width:100%;
+  height:100%;    
+  max-height: 280px;
+  position:absolute;
+
+  left:0;
+  top:0;
+	
+  background:linear-gradient(transparent 100px,white);
+}
+
+
+.coverNewsContentForSafari{
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-align: justify;
+
+	
+
+}
+
+
+.coverNewsContentForSafari:before {
+  content:'';
+  width:100%;
+  height:100%;    
+  max-height : 320px;
+  position:absolute;
+  left:0;
+  top:0;
+	
+background:linear-gradient(to bottom,  rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0) 50%, #fff 100%);
+
+
+.coverSaFakultetaContent{
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;0
+  text-align: justify;
+		
+}/* -------------------------------
+   #oprema Mobile Responsive Fixes
+---------------------------------*/
+@media (max-width: 768px) {
+
+    /* Font i veličina tabele */
+    #oprema {
+        font-size: 12px;
+        table-layout: fixed;   /* za ravnomjernu širinu kolona */
+        width: 100% !important;
+    }
+
+    /* Sve ćelije: ograniči visinu i prikaz teksta */
+    #oprema td {
+        white-space: nowrap;        /* sprečava wrap, horizontalni scroll ostaje */
+        max-width: 120px;           /* prilagodi širinu kolone */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: top;
+        padding: 4px 6px;           /* manji padding za mobil */
+    }
+
+    /* Multi-line ćelije za duže opise */
+  #oprema td.multiline {
+        display: block;          /* blok element da max-height radi */
+        overflow: hidden;        /* sakrije višak teksta */
+        max-height: calc(1.2em * 3); /* 3 reda */
+        line-height: 1.2em;      /* visina reda */
+    }
+
+    /* Smanjene slike u mobilnom prikazu */
+    #oprema img {
+        max-width: 80px !important;
+        max-height: 80px !important;
+        height: auto !important;
+        display: block;
+        margin: 0 auto;
+    }
+
+    /* DataTables filter */
+    .dataTables_wrapper .dataTables_filter {
+        text-align: left;
+        margin-bottom: 8px;
+    }
+
+    /* ScrollX za tabelu */
+    div.dataTables_wrapper {
+ width: 100%;
+        overflow-x: auto;
+    }
+
+    /* Ako ima dug tekst u headeru */
+    #oprema th {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+td.dtr-control {
+    cursor: pointer;
+}
+td.dtr-control:before {
+    content: "+";
+    font-weight: bold;
+}
+tr.dtr-expanded td.dtr-control:before {
+    content: "-";
+}
+.toggle-text i {
+    font-size: 16px;
+    color: #003468;
+    cursor: pointer;
+}
+table#oprema td {
+    vertical-align: top;
+    word-break: break-word;
+}
+
+table#oprema td.multiline {
+    white-space: normal;
+}
+
+/* bitno za mobile stabilnost */
+.short-text, .full-text {
+    display: block;
+}
+
+/* dugme da ne �iri kolonu */
+.toggle-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+table#oprema td:nth-child(9) {
+    max-width: 280px;
+}

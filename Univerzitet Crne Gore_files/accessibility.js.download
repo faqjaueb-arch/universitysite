@@ -1,0 +1,1081 @@
+console.log('Accessibility Tools script loaded');
+
+const settingsManager = {
+    defaults: {
+        fontSize: 5,
+        contrast: 'normal',
+        alignment: 'left-align',
+        animations: false,
+        highlightLinks: false,
+        dyslexiaFont: false,
+        hideMedia: false,
+        saturation: false
+    },
+    current: {},
+    reset() {
+        this.current = { ...this.defaults };
+        return this.current;
+    },
+    init() {
+        this.current = { ...this.defaults };
+        const saved = localStorage.getItem('accessibilitySettings');
+        if (saved) {
+            try {
+                this.current = { ...this.current, ...JSON.parse(saved) };
+            } catch (e) {
+                console.error('Error loading settings:', e);
+            }
+        }
+    }
+};
+
+settingsManager.init();
+
+let lastScroll = 0;
+window.addEventListener('scroll', function () {
+    const currentScroll = window.pageYOffset;
+    if (currentScroll > 50) {
+        document.body.classList.add('scrolled');
+        lastScroll = currentScroll;
+    } else {
+        document.body.classList.remove('scrolled');
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.addEventListener('click', function (e) {
+        const option = e.target.closest('.accessibility-option');
+        if (!option) return;
+
+        option.classList.toggle('toggle--active');
+
+        const targetId = option.id;
+        const isActive = option.classList.contains('toggle--active');
+
+        switch (targetId) {
+            case 'toggleHighlightLinksBtn':
+                toggleHighlightLinks(isActive);
+                break;
+            case 'toggleAnimationsBtn':
+                toggleAnimations(isActive);
+                break;
+            case 'toggleDyslexiaBtn':
+                toggleDyslexiaFont(isActive);
+                break;
+            case 'toggleMediaBtn':
+                toggleMediaVisibility(isActive);
+                break;
+        }
+    });
+
+    document.querySelectorAll('[data-modal]').forEach(button => {
+        button.addEventListener('click', function () {
+            const modalId = this.dataset.modal;
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'flex';
+        });
+    });
+
+    document.querySelectorAll('.close-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            this.closest('.modal').style.display = 'none';
+        });
+    });
+
+    const resetButton = document.getElementById('resetSettings');
+    if (resetButton) {
+        resetButton.addEventListener('click', resetSettings);
+    }
+
+    const interfaceButton = document.getElementById('hideInterfaceBtn');
+    if (interfaceButton) {
+        interfaceButton.addEventListener('click', toggleInterface);
+    }
+
+    const cancelInterfaceButton = document.getElementById('cancelInterfaceBtn');
+    if (cancelInterfaceButton) {
+        cancelInterfaceButton.addEventListener('click', closeInterface);
+    }
+
+    const acceptInterfaceButton = document.getElementById('acceptInterfaceBtn');
+    if (acceptInterfaceButton) {
+        acceptInterfaceButton.addEventListener('click', acceptCloseInterface);
+    }
+
+    const eventListeners = {
+        'toggleHighlightLinksBtn': toggleHighlightLinks,
+        'toggleDyslexiaBtn': toggleDyslexiaFont,
+        'toggleAnimationsBtn': toggleAnimations,
+        'toggleMediaBtn': toggleMediaVisibility,
+    };
+    initAccessibility();
+});
+
+function saveSetting(key, value) {
+    settingsManager.current[key] = value;
+
+    localStorage.setItem('accessibilitySettings', JSON.stringify(settingsManager.current));
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const panelToggle = document.getElementById('panel-toggle');
+    const accessibilityPanel = document.getElementById('accessibilityPanel');
+    const closeButton = document.querySelector('.close-btn');
+
+    function handlePanelToggle() {
+        if (sessionStorage.getItem("accessibilityDisabled") === "true") return;
+
+        accessibilityPanel.classList.toggle('active-accessibility-panel');
+
+        panelToggle.style.display = accessibilityPanel.classList.contains('active-accessibility-panel')
+            ? 'none'
+            : 'flex';
+    }
+
+    panelToggle.style.display = 'flex';
+    accessibilityPanel.classList.remove('activeAccesibilityPanel');
+
+    if (panelToggle) {
+        panelToggle.addEventListener('click', handlePanelToggle);
+    }
+
+    if (closeButton) {
+        closeButton.addEventListener('click', handlePanelToggle);
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!accessibilityPanel.contains(e.target) &&
+            !panelToggle.contains(e.target) &&
+            accessibilityPanel.classList.contains('active-accessibility-panel')) {
+            handlePanelToggle();
+        }
+    });
+});
+
+const elements = document.querySelectorAll("body, p, h1, h2, h3, h4, h5, h6, span, div");
+const percentageDisplay = document.querySelector(".range-base");
+const accessibilityPanel = document.querySelector(".accessibility-panel");
+const originalFontSizes = new Map();
+
+elements.forEach(element => {
+    if (!accessibilityPanel.contains(element)) {
+        const computedStyle = window.getComputedStyle(element);
+        originalFontSizes.set(element, parseFloat(computedStyle.fontSize));
+    }
+});
+
+const fontSteps = [5, 8, 10];
+let currentStep = 0;
+
+function applyFontChanges() {
+    elements.forEach(element => {
+        if (!accessibilityPanel.contains(element)) {
+            const baseSize = originalFontSizes.get(element);
+
+            let sizeDelta = 0;
+            if (currentStep > 0) {
+                sizeDelta = fontSteps[Math.min(currentStep - 1, 2)];
+            } else if (currentStep < 0) {
+                sizeDelta = -fontSteps[Math.min(-currentStep - 1, 2)];
+            }
+
+            const newSize = baseSize + sizeDelta;
+            element.style.fontSize = `${newSize}px`;
+
+            const sizeRatio = newSize / baseSize;
+        }
+    });
+
+    percentageDisplay.textContent = currentStep === 0 ? 'Default' :
+        `(${currentStep > 0 ? '+' : '-'}${fontSteps[Math.min(Math.abs(currentStep) - 1, 2)]}px)`;
+}
+
+document.querySelector(".range-plus").addEventListener("click", function () {
+    if (currentStep < 3) {
+        currentStep++;
+        applyFontChanges();
+    }
+});
+
+document.querySelector(".range-minus").addEventListener("click", function () {
+    if (currentStep > -3) {
+        currentStep--;
+        applyFontChanges();
+    }
+});
+
+document.querySelector(".range-base").addEventListener("click", function () {
+    currentStep = 0;
+    elements.forEach(element => {
+        if (!accessibilityPanel.contains(element)) {
+            element.style.fontSize = "";
+        }
+    });
+    percentageDisplay.textContent = "Default";
+});
+
+
+const lineHeightElements = document.querySelectorAll("body, p, h1, h2, h3, h4, h5, h6, span, div");
+const lineHeightPanel = document.querySelector(".accessibility-panel");
+const lineHeightPercentageDisplay = document.querySelector(".adjust-line-height .range-base");
+const originalLineHeights = new Map();
+
+lineHeightElements.forEach(element => {
+    if (!lineHeightPanel.contains(element)) {
+        const computedStyle = window.getComputedStyle(element);
+        originalLineHeights.set(element, parseFloat(computedStyle.lineHeight));
+    }
+});
+
+const lineSteps = [2, 4, 6];
+let currentLineStep = 0;
+
+function applyLineHeightChanges() {
+    lineHeightElements.forEach(element => {
+        if (!lineHeightPanel.contains(element)) {
+            const baseHeight = originalLineHeights.get(element);
+
+            let heightDelta = 0;
+            if (currentLineStep > 0) {
+                heightDelta = lineSteps[Math.min(currentLineStep - 1, 2)];
+            } else if (currentLineStep < 0) {
+                heightDelta = -lineSteps[Math.min(-currentLineStep - 1, 2)];
+            }
+
+            element.style.lineHeight = `${baseHeight + heightDelta}px`;
+        }
+    });
+
+    lineHeightPercentageDisplay.textContent = currentLineStep === 0 ? 'Default' :
+        `(${currentLineStep > 0 ? '+' : '-'}${lineSteps[Math.min(Math.abs(currentLineStep) - 1, 2)]}px)`;
+}
+
+document.querySelector(".adjust-line-height .range-plus").addEventListener("click", () => {
+    if (currentLineStep < 3) {
+        currentLineStep++;
+        applyLineHeightChanges();
+    }
+});
+
+document.querySelector(".adjust-line-height .range-minus").addEventListener("click", () => {
+    if (currentLineStep > -3) {
+        currentLineStep--;
+        applyLineHeightChanges();
+    }
+});
+
+document.querySelector(".adjust-line-height .range-base").addEventListener("click", () => {
+    currentLineStep = 0;
+    lineHeightElements.forEach(element => {
+        if (!lineHeightPanel.contains(element)) {
+            element.style.lineHeight = "";
+        }
+    });
+    lineHeightPercentageDisplay.textContent = "Default";
+});
+
+const letterSpacingElements = document.querySelectorAll("body, p, h1, h2, h3, h4, h5, h6, span, div");
+const letterSpacingPanel = document.querySelector(".accessibility-panel");
+const letterSpacingPercentageDisplay = document.querySelector(".adjust-letter-spacing .range-base");
+const originalLetterSpacings = new Map();
+
+letterSpacingElements.forEach(element => {
+    if (!letterSpacingPanel.contains(element)) {
+        const computedStyle = window.getComputedStyle(element);
+        const originalValue = computedStyle.letterSpacing;
+
+        let baseValue = 0;
+        if (originalValue !== 'normal') {
+            if (originalValue.endsWith('em')) {
+                const fontSize = parseFloat(computedStyle.fontSize);
+                baseValue = parseFloat(originalValue) * fontSize;
+            } else {
+                baseValue = parseFloat(originalValue);
+            }
+        }
+
+        originalLetterSpacings.set(element, baseValue);
+    }
+});
+
+const letterSteps = [0.4, 0.8, 1.2];
+let currentLetterStep = 0;
+
+function applyLetterSpacingChanges() {
+    letterSpacingElements.forEach(element => {
+        if (!letterSpacingPanel.contains(element)) {
+            const base = originalLetterSpacings.get(element);
+            let delta = 0;
+
+            if (currentLetterStep > 0) {
+                delta = letterSteps[Math.min(currentLetterStep - 1, letterSteps.length - 1)];
+            } else if (currentLetterStep < 0) {
+                delta = -letterSteps[Math.min(-currentLetterStep - 1, letterSteps.length - 1)];
+            }
+
+            element.style.letterSpacing = `${base + delta}px`;
+        }
+    });
+
+    const displayValue = currentLetterStep === 0 ? 'Default' :
+        `(${currentLetterStep > 0 ? '+' : '-'}${letterSteps[Math.min(Math.abs(currentLetterStep) - 1, letterSteps.length - 1)].toFixed(1)}px)`;
+
+    letterSpacingPercentageDisplay.textContent = displayValue;
+}
+
+document.querySelector(".adjust-letter-spacing .range-plus").addEventListener("click", () => {
+    if (currentLetterStep < letterSteps.length) {
+        currentLetterStep++;
+        applyLetterSpacingChanges();
+    }
+});
+
+document.querySelector(".adjust-letter-spacing .range-minus").addEventListener("click", () => {
+    if (currentLetterStep > -letterSteps.length) {
+        currentLetterStep--;
+        applyLetterSpacingChanges();
+    }
+});
+
+document.querySelector(".adjust-letter-spacing .range-base").addEventListener("click", () => {
+    currentLetterStep = 0;
+    letterSpacingElements.forEach(element => {
+        if (!letterSpacingPanel.contains(element)) {
+            element.style.letterSpacing = '';
+        }
+    });
+    letterSpacingPercentageDisplay.textContent = "Default";
+});
+
+const ttsManager = {
+    queue: [],
+    isSpeaking: false,
+    continuousMode: false,
+    lastSpoken: '',
+
+    async speak(text) {
+        if (!text || text === this.lastSpoken) return;
+        this.queue.push(text);
+        this.lastSpoken = text;
+
+        if (!this.isSpeaking) {
+            await this.processQueue();
+        }
+    },
+
+    async processQueue() {
+        while (this.queue.length > 0) {
+            this.isSpeaking = true;
+            const text = this.queue.shift();
+            await this.playText(text);
+        }
+        this.isSpeaking = false;
+    },
+
+    async playText(text) {
+        try {
+            const response = await fetch('https://stole.pythonanywhere.com/speak', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+
+            if (!response.ok) throw new Error('Speech generation failed');
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const audio = document.getElementById('audio');
+            audio.src = url;
+            await audio.play();
+        } catch (error) {
+            console.error('TTS Error:', error);
+        }
+    },
+
+    toggleContinuousMode() {
+        this.continuousMode = !this.continuousMode;
+        document.body.classList.toggle('tts-active', this.continuousMode);
+
+        const speakBtn = document.getElementById('speakBtn');
+        if (speakBtn) {
+            speakBtn.classList.toggle('action-box--active', this.continuousMode);
+            speakBtn.setAttribute('aria-checked', this.continuousMode.toString());
+        }
+
+        return this.continuousMode;
+    }
+};
+
+//function resetSettings() {
+  //  settingsManager.reset();
+
+    //localStorage.removeItem('accessibilitySettings');
+
+    //document.body.className = '';
+
+   // fontMultiplier = 1;
+   // currentStep = 0;
+   // document.querySelectorAll('*').forEach(el => {
+     //   el.style.fontSize = '';
+    //});
+    //percentageDisplay.textContent = "Default";
+
+    //document.querySelectorAll('.toggle--active, .action-box--active').forEach(el => {
+      //  el.classList.remove('toggle--active', 'action-box--active');
+    //});
+
+    //document.querySelectorAll('input, select').forEach(el => {
+      //  if (el.type === 'checkbox') {
+        //    el.checked = false;
+        //} else if (el.tagName === 'SELECT') {
+          //  el.value = '';
+        //}
+    //});
+
+    //settingsManager.init();
+    //initAccessibility();
+
+    //console.log('All settings have been reset');
+//}
+
+function resetSettings() {
+    settingsManager.reset();
+    localStorage.removeItem('accessibilitySettings');
+
+   
+    document.body.classList.remove(
+        'high-contrast', 'light-contrast', 'dark-contrast',  
+        'center-align', 'right-align',                        
+        'disable-animations', 'highlight-links',              
+        'dyslexia-font', 'hide-images', 'hide-svgs',          
+        'saturation-mode', 'scrolled'                         
+    );
+    
+    document.body.classList.add('left-align');
+
+    
+    currentStep = 0;
+    elements.forEach(element => {
+        if (!accessibilityPanel.contains(element)) {
+            element.style.fontSize = "";
+        }
+    });
+
+    percentageDisplay.textContent = "Default";
+
+    ttsManager.continuousMode = false;
+    document.body.classList.remove('tts-active');
+    document.getElementById('speakBtn')?.classList.remove('action-box--active')
+   
+    document.querySelectorAll('.toggle--active, .action-box--active').forEach(el => {
+        el.classList.remove('toggle--active', 'action-box--active');
+    });
+
+    
+    document.querySelectorAll('input, select').forEach(el => {
+        if (el.type === 'checkbox') {
+            el.checked = false;
+        } else if (el.tagName === 'SELECT') {
+            el.value = '';
+        }
+    });
+
+   
+    settingsManager.init();
+    initAccessibility();
+
+    console.log('All settings have been reset');
+}
+
+function initAccessibility() {
+    Object.entries(settingsManager.current).forEach(([key, value]) => {
+        applySetting(key, value);
+    });
+
+    const currentContrast = settingsManager.current.contrast;
+    if (currentContrast !== 'normal') {
+        document.body.classList.add(currentContrast);
+        const btnId = `toggle${currentContrast.split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join('')}Btn`;
+        document.getElementById(btnId)?.classList.add('action-box--active');
+    }
+
+    const currentAlignment = settingsManager.current.alignment || 'left-align';
+    document.body.classList.add(currentAlignment);
+
+    const alignmentBtnId = `toggle${currentAlignment.split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('')}Btn`;
+    document.getElementById(alignmentBtnId)?.classList.add('action-box--active');
+
+    document.querySelectorAll('.accessibility-option').forEach(option => {
+        const settingKey = option.id
+            .replace('toggle', '')
+            .replace('Btn', '')
+            .replace(/([A-Z])/g, (g) => g[0].toLowerCase());
+
+        if (settingsManager.current[settingKey]) {
+            option.classList.add('toggle--active');
+        }
+    });
+
+    const speakBtn = document.getElementById('speakBtn');
+    if (speakBtn) {
+       // speakBtn.addEventListener('click', function (e) {
+         //   e.stopPropagation();
+           // ttsManager.toggleContinuousMode();
+       // });
+        speakBtn.classList.toggle('action-box--active', ttsManager.continuousMode);
+        speakBtn.setAttribute('aria-checked', ttsManager.continuousMode.toString());
+    }
+
+    document.addEventListener('mouseup', () => {
+        if (ttsManager.continuousMode) {
+            const selection = window.getSelection().toString().trim();
+            ttsManager.speak(selection);
+        }
+    });
+}
+
+document.getElementById('speakBtn').addEventListener('click', () => {
+    const mode = ttsManager.toggleContinuousMode();
+});
+
+function toggleMediaVisibility(active) {
+    document.body.classList.toggle('hide-images', active);
+    document.body.classList.toggle('hide-svgs', active);
+    saveSetting('hideMedia', active);
+}
+
+function toggleAnimations(active) {
+    if (active) {
+        document.body.classList.add('disable-animations');
+    } else {
+        document.body.classList.remove('disable-animations');
+    }
+    saveSetting('animations', active);
+}
+
+function toggleDyslexiaFont(active) {
+    document.body.classList.toggle('dyslexia-font', active);
+    saveSetting('dyslexiaFont', active);
+}
+
+function toggleHighlightLinks(active) {
+    if (active) {
+        document.body.classList.add('highlight-links');
+    } else {
+        document.body.classList.remove('highlight-links');
+    }
+    saveSetting('highlightLinks', active);
+}
+
+function setContrast(contrast) {
+    const currentContrast = Array.from(document.body.classList).find(c =>
+        ['high-contrast', 'light-contrast', 'dark-contrast'].includes(c)
+    );
+
+    document.body.classList.remove('high-contrast', 'light-contrast', 'dark-contrast');
+    document.querySelectorAll('[id^="toggle"]').forEach(btn =>
+        btn.classList.remove('action-box--active')
+    );
+
+    if (currentContrast !== contrast) {
+        document.body.classList.add(contrast);
+        const btnId = `toggle${contrast.split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join('')}Btn`;
+        document.getElementById(btnId)?.classList.add('action-box--active');
+        saveSetting('contrast', contrast);
+    } else {
+        saveSetting('contrast', 'normal');
+    }
+}
+
+function setAlignment(alignment) {
+    const currentAlignment = Array.from(document.body.classList).find(c =>
+        ['center-align', 'left-align', 'right-align'].includes(c)
+    ) || 'left-align';
+
+    document.body.classList.remove('center-align', 'left-align', 'right-align');
+
+    if (currentAlignment === alignment) {
+        document.body.classList.add('left-align');
+        saveSetting('alignment', 'left-align');
+    } else {
+        document.body.classList.add(alignment);
+        saveSetting('alignment', alignment);
+    }
+
+    document.querySelectorAll('[id^="toggle"]').forEach(btn =>
+        btn.classList.remove('action-box--active')
+    );
+
+    const newAlignment = Array.from(document.body.classList).find(c =>
+        ['center-align', 'left-align', 'right-align'].includes(c)
+    ) || 'left-align';
+
+    const btnId = `toggle${newAlignment.split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('')}Btn`;
+    document.getElementById(btnId)?.classList.add('action-box--active');
+}
+
+function toggleSaturationMode(active) {
+    document.body.classList.toggle('saturation-mode', active);
+    saveSetting('saturation', active);
+}
+
+document.getElementById('toggleHighContrastBtn').addEventListener('click', () =>
+    setContrast('high-contrast')
+);
+document.getElementById('toggleLightContrastBtn').addEventListener('click', () =>
+    setContrast('light-contrast')
+);
+document.getElementById('toggleDarkContrastBtn').addEventListener('click', () =>
+    setContrast('dark-contrast')
+);
+document.getElementById('toggleCenterAlignBtn').addEventListener('click', () =>
+    setAlignment('center-align')
+);
+
+document.getElementById('toggleRightAlignBtn').addEventListener('click', () =>
+    setAlignment('right-align')
+);
+
+document.getElementById('toggleLeftAlignBtn').addEventListener('click', () =>
+    setAlignment('left-align')
+);
+
+document.getElementById('saturationModeBtn').addEventListener('click', () => {
+    const isActive = document.body.classList.toggle('saturation-mode');
+    saveSetting('saturation', isActive);
+    document.getElementById('saturationModeBtn').classList.toggle('action-box--active', isActive);
+});
+
+document.getElementById('toggleHighlightLinksBtn').addEventListener('click', toggleLinksHighlight);
+document.getElementById('toggleDyslexiaBtn').addEventListener('click', toggleDyslexiaFont);
+document.getElementById('toggleAnimationsBtn').addEventListener('click', toggleAnimations);
+document.getElementById('toggleMediaBtn').addEventListener('click', toggleMediaVisibility);
+document.addEventListener('DOMContentLoaded', initAccessibility);
+
+const openStatementBtn = document.getElementById("statementBtn");
+if (openStatementBtn) {
+    openStatementBtn.addEventListener("click", openStatement);
+}
+
+const closeStatementBtn = document.querySelector("#statementModal .close-btn");
+if (closeStatementBtn) {
+    closeStatementBtn.addEventListener("click", closeStatement);
+}
+
+function openStatement() {
+    const modal = document.getElementById("statementModal");
+    modal.style.display = "flex";
+}
+
+function closeStatement() {
+    const modal = document.getElementById("statementModal");
+    modal.style.display = "none";
+}
+
+window.addEventListener("click", function (event) {
+    const modal = document.getElementById("statementModal");
+    if (event.target === modal) {
+        closeStatement();
+    }
+});
+
+function toggleInterface() {
+    const modal = document.getElementById("interfaceModal");
+    modal.style.display = "flex";
+}
+
+function closeInterface() {
+    const modal = document.getElementById("interfaceModal");
+    modal.style.display = "none";
+}
+
+window.addEventListener("click", function (event) {
+    const modal = document.getElementById("interfaceModal");
+    if (event.target === modal) {
+        closeInterface();
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    if (sessionStorage.getItem("accessibilityDisabled") === "true") {
+        permanentlyDisableAccessibility();
+    }
+});
+
+function acceptCloseInterface() {
+    sessionStorage.setItem("accessibilityDisabled", "true");
+    permanentlyDisableAccessibility();
+    const modal = document.getElementById("interfaceModal");
+    modal.style.display = "none";
+}
+
+function permanentlyDisableAccessibility() {
+    const panel = document.getElementById("accessibilityPanel");
+    const toggleButton = document.getElementById("panel-toggle");
+    panel.style.display = "none";
+    toggleButton.style.display = "none";
+}
+
+function toggleLinksHighlight() {
+    const btn = document.getElementById('toggleHighlightLinksBtn');
+    const active = btn.classList.contains('toggle--active');
+    toggleHighlightLinks(active);
+}
+
+document.getElementById('audio').addEventListener('error', function (e) {
+    console.error('Audio playback error:', e);
+    ttsManager.isSpeaking = false;
+    ttsManager.processQueue();
+});
+
+function applySetting(key, value) {
+    try {
+        switch (key) {
+            case 'fontSize':
+                document.documentElement.style.setProperty('--font-size-multiplier', value / 100);
+                break;
+            case 'contrast':
+                setContrast(value);
+                break;
+            case 'alignment':
+                setAlignment(value);
+                break;
+            case 'animations':
+                toggleAnimations(value);
+                document.getElementById('toggleAnimationsBtn')
+                    ?.classList.toggle('toggle--active', value);
+                break;
+            case 'highlightLinks':
+                toggleHighlightLinks(value);
+                document.getElementById('toggleHighlightLinksBtn')
+                    ?.classList.toggle('toggle--active', value);
+                break;
+            case 'dyslexiaFont':
+                toggleDyslexiaFont(value);
+                document.getElementById('toggleDyslexiaBtn')
+                    ?.classList.toggle('toggle--active', value);
+                break;
+            case 'hideMedia':
+                toggleMediaVisibility(value);
+                document.getElementById('toggleMediaBtn')
+                    ?.classList.toggle('toggle--active', value);
+                break;
+            case 'saturation':
+                document.body.classList.toggle('saturation-mode', value);
+                document.getElementById('saturationModeBtn')
+                    ?.classList.toggle('action-box--active', value);
+                break;
+            default:
+                break;
+        }
+    } catch (e) {
+        console.error(`Error applying setting ${key}:`, e);
+    }
+}
+
+const translations = {
+    ci: {
+        accessibilityTitle: "Прилагођавање приступачности",
+        resetSettings: "Ресетуј поставке",
+        statement: "Изјава",
+        hideInterface: "Сакриј интерфејс",
+        highlightLinks: "Истакни везе",
+        pauseAnimations: "Паузирај анимације",
+        dyslexiaFont: "Дислексија фонт",
+        hideImages: "Сакриј слике",
+        adjustFont: "Подеси величину фонта",
+        highSaturation: "Висока засићеност",
+        highContrast: "Висок контраст",
+        lightContrast: "Светли контраст",
+        darkContrast: "Тамни контраст",
+        letterSpacing: "Размак између слова",
+        lineHeight: "Висина линије",
+        speakMode: "Режим читања",
+        alignCenter: "Центриран текст",
+        alignLeft: "Лево поравнање",
+        alignRight: "Десно поравнање",
+        statementTitle: "Важна изјава",
+        interfaceTitle: "Сакриј интерфејс приступачности?",
+        chooseProfile: "Изаберите одговарајући профил приступачности",
+        highlightDesc: "Истиче све везе на сајту!",
+        animationsDesc: "Анимације ће бити заустављене на сајту!",
+        dyslexiaDesc: "Фонт за дислексију ће бити примењен на сајту!",
+        hideImagesDesc: "Све слике ће бити сакривене на сајту!",
+        defaultText: "Подразумевано",
+        offText: "ИСКЉ",
+        onText: "УКЉ",
+        complianceStatus: "Статус усаглашености",
+        screenReaderOptimization: "Оптимизација за екранске читаче",
+        keyboardNavigation: "Навигација тастатуром",
+        epilepsySafeProfile: "Профил безбедности за епилепсију",
+        visionImpairedProfile: "Профил за оштећен вид",
+        cognitiveDisabilityProfile: "Профил за когнитивне сметње",
+        adhdFriendlyProfile: "Профил прилагођен за ADHD",
+        blindUsersProfile: "Профил за слепе кориснике",
+        keyboardNavigationProfile: "Профил за навигацију тастатуром",
+        keyboardNavigationOptimization: "Оптимизација навигације тастатуром",
+        fontAdjustments: "Подешавање фонта",
+        colorAdjustments: "Подешавање боја",
+        contentHighlighting: "Истицање садржаја",
+        audioMuting: "Искључивање звука",
+        cognitiveDisorders: "Когнитивни поремећаји",
+        additionalFunctions: "Додатне функције",
+        assistiveTechnology: "Помоћна технологија",
+        notesCommentsFeedback: "Напомене, коментари и повратне информације",
+        acceptText: "Прихвати",
+        cancelText: "Откажи",
+        animationsTitle: "Анимације ",
+        hideInterfaceWarning: "Напомена: Ако изаберете да сакријете интерфејс за приступачност, нећете га моћи видети више, осим ако не обришете историју прегледања и податке. Да ли сте сигурни да желите да сакријете интерфејс?",
+        complianceStatusText: "Чврсто верујемо да интернет треба да буде доступан и доступан свима и посвећени смо пружању веб странице која је доступна најширој могућој публици, без обзира на способност.",
+        wcagComplianceText: "Да бисмо то остварили, настојимо да се што строжије придржавамо Смерница за приступачност веб садржаја 2.1 (WCAG 2.1) Конзорцијума за светску мрежу (W3C) на нивоу AA. Ове смернице објашњавају како учинити веб садржај доступним људима са широким спектром инвалидитета. Усклађивање са овим смерницама помаже нам да осигурамо да је веб страница доступна слепим људима, људима са моторним оштећењима, оштећењем вида, когнитивним сметњама и још много тога.",
+        accessibilityInterfaceText: "Ова веб страница користи разне технологије које имају за циљ да је учине што доступнијом у сваком тренутку. Користимо интерфејс за приступачност који омогућава особама са одређеним инвалидитетима да подесе кориснички интерфејс веб странице (UI) и дизајнирају га према својим личним потребама.",
+        aiApplicationText: "Осим тога, веб страница користи апликацију засновану на вештачкој интелигенцији која ради у позадини и непрестано оптимизује њен ниво приступачности. Ова апликација исправља HTML веб странице, прилагођава њену функционалност и понашање за екранске читаче које користе слепи корисници и за функције тастатуре које користе особе са моторним оштећењима.",
+        contactOwnerText: "Ако желите да контактирате власника веб странице, користите образац на веб страници",
+        screenReaderOptimizationText: "Наша веб страница примењује технику ARIA атрибута (Accessible Rich Internet Applications), заједно са разним променама понашања, како би осигурала да слепи корисници који посећују са екранским читачима могу да читају, разумеју и уживају у функцијама веб странице. Чим корисник са екранским читачем уђе на ваш сајт, одмах добија упозорење да уђе у профил екранског читача како би могао ефикасно да прегледа и управља вашим сајтом.",
+        keyboardNavigationText: "Процес у позадини такође прилагођава HTML веб странице и додаје разна понашања користећи JavaScript код како би веб страница била операбилна помоћу тастатуре. То укључује могућност навигације веб страницом користећи тастере Tab и Shift+Tab, управљање падајућим менијима стрелицама, затварање њих Esc-ом, покретање дугмади и веза помоћу тастера Enter, навигацију између радио и контролних елемената кутијица помоћу стрелица и попуњавање њих простором или тастером Enter.",
+        disabilityProfilesText: "Додатно, корисници тастатуре ће у било ком тренутку пронаћи меније за прескакање садржаја кликом на Alt+2, или као први елемент сајта док се крећу тастатуром. Позадински процес такође рукује изазваним искачућим прозорима померајући фокус тастатуре према њима чим се појаве, не дозвољавајући да фокус одступи.",
+        additionalAdjustmentsText: "Корисници могу да користе пречице као што су 'M' (менији), 'H' (наслови), 'F' (форме), 'B' (дугмад) и 'G' (графика) да би прешли на одређене елементе.",
+        assistiveTechCompatibilityText: "Настојимо да подржимо што више прегледача и помоћних технологија, тако да наши корисници могу да изаберу најприкладније алатке за себе, са што мање ограничења. Стога смо веома напорно радили да бисмо могли да подржимо све главне системе који чине преко 95% удела на тржишту корисника, укључујући Google Chrome, Mozilla Firefox, Apple Safari, Opera и Microsoft Edge, JAWS и NVDA (екрански читачи), и за Windows и MAC кориснике.",
+        notesFeedbackText: "Упркос нашим најбољим напорима да омогућимо било коме да прилагоди веб страницу својим потребама, можда још увек постоје странице или одељци који нису у потпуности доступни, који су у процесу постајања доступни или којима недостаје адекватно технолошко решење да би их учинили доступним. Ипак, непрестано побољшавамо нашу приступачност, додајемо, ажурирамо, побољшавамо њене опције и функције и развијамо и усвајамо нове технологије. Све је то требало да постигне оптимални ниво приступачности пратећи технолошке напретке. Ако желите да контактирате власника веб странице, користите образац на веб страници",
+        screenReaderOptimizationDetails: "Компоненте веб сајта од врха до дна, како би се осигурала непрекидна усаглашеност чак и при ажурирању сајта. У овом процесу, пружамо екранским читачима смислене податке користећи скуп ARIA атрибута. На пример, пружамо тачне натписе за форме; описе за иконе на које се може кликнути (иконе друштвених мрежа, икона за претрагу, икона корпе, итд.); смернице за валидацију уноса у форме; улоге елемената као што су дугмад, менији, модулни дијалози (искачући прозори) и други. Осим тога, позадински процес скенира све слике на веб сајту. Обезбеђује тачан и смислен опис слике заснован на препознавању објеката као ALT (алтернативни текст) ознаку за слике које нису описане. Такође ће издвојити текстове уграђене у слику користећи OCR (оптичко препознавање знакова) технологију. Да бисте укључили подешавања за екранске читаче у било ком тренутку, корисници треба само да притисну тастер Alt+1. Корисници екранских читача такође добијају аутоматска обавештења да укључе режим екранског читача чим уђу на веб сајт. Ова подешавања су компатибилна са популарним екранским читачима као што су JAWS, NVDA, VoiceOver и TalkBack.",
+        disabilityProfilesTitle: "Профили инвалидитета подржани на нашем сајту",
+        epilepsySafeProfileDesc: "овај профил омогућава особама са епилепсијом безбедно коришћење веб странице елиминишући ризик од напада услед трепћућих анимација и ризичних комбинација боја.",
+        visionImpairedProfileDesc: "овај профил прилагођава веб страницу тако да буде доступна већини видних оштећења као што су слабљење вида, тунелски вид, катаракта, глауком и други.",
+        cognitiveDisabilityProfileDesc: "овај профил пружа разне помоћне функције да помогне корисницима са когнитивним сметњама као што су аутизам, дислексија, мождани удар и други да се лакше фокусирају на основне елементе.",
+        adhdFriendlyProfileDesc: "овај профил значајно смањује ометања и буку да помогне особама са ADHD-ом и неуродевелопменталним поремећајима да прегледају, читају и фокусирају се на основне елементе лакше.",
+        blindUsersProfileDesc: "овај профил прилагођава веб страницу да буде компатибилна са екранским читачима као што су JAWS, NVDA, VoiceOver и TalkBack. Екрански читач је инсталиран на рачунару слепог корисника, а овај сајт је компатибилан са њим.",
+        keyboardNavigationProfileDesc: "овај профил омогућава особама са моторним оштећењима да управљају веб страницом користећи тастере Tab, Shift+Tab и Enter. Корисници могу такође користити пречице као што су 'M' (менији), 'H' (наслови), 'F' (форме), 'B' (дугмад) и 'G' (графика) да пређу на одређене елементе.",
+        uiAdjustmentsTitle: "Додатна подешавања интерфејса, дизајна и читљивости",
+        additionalFunctionsTitle: "Додатне функције",
+        additionalFunctionsDesc: " омогућавамо корисницима да промене боју и величину курсора, користе режим штампања, омогуће виртуелну тастатуру и многе друге функције."
+    },
+    en: {
+        accessibilityTitle: "Accessibility Adjustments",
+        resetSettings: "Reset Settings",
+        statement: "Statement",
+        hideInterface: "Hide Interface",
+        highlightLinks: "Highlight Links",
+        pauseAnimations: "Pause Animations",
+        dyslexiaFont: "Dyslexia Font",
+        hideImages: "Hide Images",
+        adjustFont: "Adjust Font Sizing",
+        highSaturation: "High Saturation",
+        highContrast: "High Contrast",
+        lightContrast: "Light Contrast",
+        darkContrast: "Dark Contrast",
+        letterSpacing: "Adjust Letter Spacing",
+        lineHeight: "Adjust Line Height",
+        speakMode: "Speak Mode",
+        alignCenter: "Align Center",
+        alignLeft: "Align Left",
+        alignRight: "Align Right",
+        statementTitle: "Important Statement",
+        interfaceTitle: "Hide Accessibility Interface?",
+        chooseProfile: "Choose the right accessibility profile for you",
+        highlightDesc: "Highlights all the links on the site!",
+        animationsDesc: "Animations will be paused on the site!",
+        dyslexiaDesc: "Dyslexia Font will be applied on the site!",
+        hideImagesDesc: "All images will be hidden on the site!",
+        defaultText: "Default",
+        offText: "OFF",
+        onText: "ON",
+        complianceStatus: "Compliance status",
+        screenReaderOptimization: "Screen-reader optimization",
+        keyboardNavigation: "Keyboard navigation",
+        epilepsySafeProfile: "Epilepsy Safe Profile",
+        visionImpairedProfile: "Vision Impaired Profile",
+        cognitiveDisabilityProfile: "Cognitive Disability Profile",
+        adhdFriendlyProfile: "ADHD Friendly Profile",
+        blindUsersProfile: "Blind Users Profile",
+        keyboardNavigationProfile: "Keyboard Navigation Profile",
+        keyboardNavigationOptimization: "Keyboard navigation optimization",
+        fontAdjustments: "Font adjustments",
+        colorAdjustments: "Color adjustments",
+        contentHighlighting: "Content highlighting",
+        audioMuting: "Audio muting",
+        cognitiveDisorders: "Cognitive disorders",
+        additionalFunctions: "Additional functions",
+        assistiveTechnology: "Assistive technology",
+        notesCommentsFeedback: "Notes, comments and feedback",
+        acceptText: "Accept",
+        cancelText: "Cancel",
+        animationsTitle: "Animations",
+        animationsDescription: "Корисници са епилепсијом могу да зауставе све покренуте анимације једним кликом. Анимације које контролише интерфејс укључују видео записе, GIF-ове и CSS трепереће транзиције.",
+        hideInterfaceWarning: "Please note: If you choose to hide the accessibility interface, you won't be able to see it anymore, unless you clear your browsing history and data. Are you sure that you wish to hide the interface?",   
+        complianceStatusText: "We firmly believe that the internet should be available and accessible to anyone and are committed to providing a website that is accessible to the broadest possible audience, regardless of ability.",
+        wcagComplianceText: "To fulfill this, we aim to adhere as strictly as possible to the World Wide Web Consortium's (W3C) Web Content Accessibility Guidelines 2.1 (WCAG 2.1) at the AA level. These guidelines explain how to make web content accessible to people with a wide array of disabilities. Complying with those guidelines helps us ensure that the website is accessible to blind people, people with motor impairments, visual impairment, cognitive disabilities, and more.",
+        accessibilityInterfaceText: "This website utilizes various technologies that are meant to make it as accessible as possible at all times. We utilize an accessibility interface that allows persons with specific disabilities to adjust the website's UI (user interface) and design it to their personal needs.",
+        aiApplicationText: "Additionally, the website utilizes an AI-based application that runs in the background and optimizes its accessibility level constantly. This application remediates the website's HTML, adapts its functionality and behavior for screen-readers used by blind users, and for keyboard functions used by individuals with motor impairments.",
+        contactOwnerText: "If you wish to contact the website's owner please use the website's form",
+        screenReaderOptimizationText: "Our website implements the ARIA attributes (Accessible Rich Internet Applications) technique, alongside various behavioral changes, to ensure blind users visiting with screen-readers can read, comprehend, and enjoy the website's functions. As soon as a user with a screen-reader enters your site, they immediately receive a prompt to enter the Screen-Reader Profile so they can browse and operate your site effectively.",
+        keyboardNavigationText: "The background process also adjusts the website's HTML and adds various behaviors using JavaScript code to make the website operable by the keyboard. This includes the ability to navigate the website using the Tab and Shift+Tab keys, operate dropdowns with the arrow keys, close them with Esc, trigger buttons and links using the Enter key, navigate between radio and checkbox elements using the arrow keys, and fill them in with the Spacebar or Enter key.",
+        disabilityProfilesText: "Additionally, keyboard users will find content-skip menus available at any time by clicking Alt+2, or as the first element of the site while navigating with the keyboard. The background process also handles triggered popups by moving the keyboard focus towards them as soon as they appear, not allowing the focus to drift outside.",
+        additionalAdjustmentsText: "Users can also use shortcuts such as 'M' (menus), 'H' (headings), 'F' (forms), 'B' (buttons), and 'G' (graphics) to jump to specific elements.",
+        assistiveTechCompatibilityText: "We aim to support as many browsers and assistive technologies as possible, so our users can choose the best fitting tools for them, with as few limitations as possible. Therefore, we have worked very hard to be able to support all major systems that comprise over 95% of the user market share, including Google Chrome, Mozilla Firefox, Apple Safari, Opera and Microsoft Edge, JAWS, and NVDA (screen readers), both for Windows and MAC users.",
+        notesFeedbackText: "Despite our very best efforts to allow anybody to adjust the website to their needs, there may still be pages or sections that are not fully accessible, are in the process of becoming accessible, or are lacking an adequate technological solution to make them accessible. Still, we are continually improving our accessibility, adding, updating, improving its options and features, and developing and adopting new technologies. All this is meant to reach the optimal level of accessibility following technological advancements. If you wish to contact the website's owner, please use the website's form",
+        screenReaderOptimizationDetails: "website's components from top to bottom, to ensure ongoing compliance even when updating the website. In this process, we provide screen-readers with meaningful data using the ARIA set of attributes. For example, we provide accurate form labels; descriptions for actionable icons (social media icons, search icons, cart icons, etc.); validation guidance for form inputs; element roles such as buttons, menus, modal dialogues (popups), and others. Additionally, the background process scans all of the website's images. It provides an accurate and meaningful image-object-recognition-based description as an ALT (alternate text) tag for images that are not described. It will also extract texts embedded within the image using an OCR (optical character recognition) technology. To turn on screen-reader adjustments at any time, users need only to press the Alt+1 keyboard combination. Screen-reader users also get automatic announcements to turn the Screen-reader mode on as soon as they enter the website. These adjustments are compatible with popular screen readers such as JAWS, NVDA, VoiceOver, and TalkBack.",
+        disabilityProfilesTitle: "Disability profiles supported on our website",
+        epilepsySafeProfileDesc: "this profile enables people with epilepsy to safely use the website by eliminating the risk of seizures resulting from flashing or blinking animations and risky color combinations.",
+        visionImpairedProfileDesc: "this profile adjusts the website so that it is accessible to the majority of visual impairments such as Degrading Eyesight, Tunnel Vision, Cataract, Glaucoma, and others.",
+        cognitiveDisabilityProfileDesc: "this profile provides various assistive features to help users with cognitive disabilities such as Autism, Dyslexia, CVA, and others, to focus on the essential elements more easily.",
+        adhdFriendlyProfileDesc: "this profile significantly reduces distractions and noise to help people with ADHD, and Neurodevelopmental disorders browse, read, and focus on the essential elements more easily.",
+        blindUsersProfileDesc: "this profile adjusts the website to be compatible with screen-readers such as JAWS, NVDA, VoiceOver, and TalkBack. A screen-reader is installed on the blind user's computer, and this site is compatible with it.",
+        keyboardNavigationProfileDesc: "this profile enables motor-impaired persons to operate the website using the keyboard Tab, Shift+Tab, and the Enter keys. Users can also use shortcuts such as 'M' (menus), 'H' (headings), 'F' (forms), 'B' (buttons), and 'G' (graphics) to jump to specific elements.",
+        uiAdjustmentsTitle: "Additional UI, design, and readability adjustments",
+        additionalFunctionsTitle: "Additional functions",
+        additionalFunctionsDesc: " we allow users to change cursor color and size, use a printing mode, enable a virtual keyboard, and many other functions."
+    },
+    la: {
+        accessibilityTitle: "Pristupačna Podešavanja",
+        resetSettings: "Resetuj Postavke",
+        statement: "Izjava",
+        hideInterface: "Sakrij Interfejs",
+        highlightLinks: "Istakni Linkove",
+        pauseAnimations: "Pauziraj Animacije",
+        dyslexiaFont: "Dizleksija Font",
+        hideImages: "Sakrij Slike",
+        adjustFont: "Podesi Veličinu Fonta",
+        highSaturation: "Visoka Zasićenost",
+        highContrast: "Visok Kontrast",
+        lightContrast: "Svijetli Kontrast",
+        darkContrast: "Tamni Kontrast",
+        letterSpacing: "Razmak Između Slova",
+        lineHeight: "Visina Linije",
+        speakMode: "Govorni Mod",
+        alignCenter: "Centrirano",
+        alignLeft: "Poravnaj Lijevo",
+        alignRight: "Poravnaj Desno",
+        statementTitle: "Važna Izjava",
+        interfaceTitle: "Sakriti Interfejs Pristupačnosti?",
+        chooseProfile: "Izaberite Odgovarajući Profil Pristupačnosti",
+        highlightDesc: "Ističe sve linkove na sajtu!",
+        animationsDesc: "Animacije će biti pauzirane na sajtu!",
+        dyslexiaDesc: "Font za dizleksiju će biti primijenjen na sajtu!",
+        hideImagesDesc: "Sve slike će biti sakrivene na sajtu!",
+        defaultText: "Podrazumijevano",
+        offText: "ISKLJUČENO",
+        onText: "UKLJUČENO",
+        complianceStatus: "Status Usaglašenosti",
+        screenReaderOptimization: "Optimizacija za Čitače Ekrana",
+        keyboardNavigation: "Navigacija Tastaturom",
+        keyboardNavigationOptimization: "Optimizacija Navigacije Tastaturom",
+        epilepsySafeProfile: "Sigurni Profil za Epilepsiju",
+        visionImpairedProfile: "Profil za Oštećen Vid",
+        cognitiveDisabilityProfile: "Profil za Kognitivne Poteškoće",
+        adhdFriendlyProfile: "ADHD Prijateljski Profil",
+        blindUsersProfile: "Profil za Slijepe Korisnike",
+        keyboardNavigationProfile: "Profil Navigacije Tastaturom (Motorne Poteškoće)",
+        fontAdjustments: "Podešavanja Fonta",
+        colorAdjustments: "Podešavanja Boja",
+        contentHighlighting: "Ističanje Sadržaja",
+        audioMuting: "Isključivanje Zvuka",
+        cognitiveDisorders: "Kognitivni Poremećaji",
+        additionalFunctions: "Dodatne Funkcije",
+        assistiveTechnology: "Pomoćna Tehnologija",
+        notesCommentsFeedback: "Napomene, Komentari, Povratne Informacije",
+        acceptText: "Prihvati",
+        cancelText: "Otkaži",
+        animationsTitle: "Animacije",
+        animationsDescription: "Korisnici sa epilepsijom mogu zaustaviti sve animacije jednim klikom. Animacije koje kontroliše interfejs uključuju video zapise, GIF-ove i CSS tranzicije.",
+        hideInterfaceWarning: "Napomena: Ako odlučite sakriti interfejs za pristupačnost, nećete ga moći vidjeti osim ako ne obrišete istoriju pregledanja i podatke. Da li ste sigurni da želite sakriti interfejs?",
+        complianceStatusText: "Čvrsto vjerujemo da internet treba da bude dostupan i pristupačan svima i posvećeni smo pružanju veb stranice koja je dostupna najširem mogućem auditorijumu, bez obzira na sposobnosti.",
+        wcagComplianceText: "Da bismo to postigli, nastojimo se što strožije pridržavati WCAG 2.1 smjernica W3C konsorcija na AA nivou. Ove smjernice objašnjavaju kako učiniti web sadržaj pristupačnim ljudima sa širokim spektrom invaliditeta. Poštovanje ovih smjernica nam pomaže da osiguramo da je web stranica dostupna slijepim osobama, osobama sa motoričkim oštećenjima, oštećenjem vida, kognitivnim smetnjama i još mnogo toga.",
+        accessibilityInterfaceText: "Ova veb stranica koristi razne tehnologije koje imaju za cilj da je učine što pristupačnijom u svakom trenutku. Koristimo interfejs za pristupačnost koji omogućava osobama sa određenim invaliditetima da podešavaju korisnički interfejs veb stranice i dizajniraju ga prema svojim ličnim potrebama.",
+        aiApplicationText: "Osim toga, veb stranica koristi aplikaciju baziranu na veštačkoj inteligenciji koja radi u pozadini i neprestano optimizuje njen nivo pristupačnosti. Ova aplikacija ispravlja HTML veb stranice, prilagođava njenu funkcionalnost i ponašanje za čitače ekrana koje koriste slijepi korisnici i za funkcije tastature koje koriste osobe sa motoričkim oštećenjima.",
+        contactOwnerText: "Ako želite kontaktirati vlasnika veb stranice, koristite obrazac na veb stranici",
+        screenReaderOptimizationText: "Naša veb stranica primjenjuje tehniku ARIA atributa (Accessible Rich Internet Applications), zajedno sa raznim promjenama ponašanja, kako bi osigurala da slijepi korisnici koji posjećuju sa čitačima ekrana mogu čitati, razumijevati i uživati u funkcijama veb stranice. Čim korisnik sa čitačem ekrana uđe na vaš sajt, odmah dobija obavještenje da uđe u profil čitača ekrana kako bi mogao efikasno pregledati i upravljati vašim sajtom.",
+        keyboardNavigationText: "Proces u pozadini takođe prilagođava HTML veb stranice i dodaje razna ponašanja koristeći JavaScript kod kako bi veb stranica bila operabilna pomoću tastature. To uključuje mogućnost navigacije veb stranicom koristeći tipke Tab i Shift+Tab, upravljanje padajućim menijima strelicama, zatvaranje njih Esc-om, pokretanje dugmadi i linkova pomoću tipke Enter, navigaciju između radio i checkbox elemenata pomoću strelica i popunjavanje njih spaceom ili tipkom Enter.",
+        disabilityProfilesText: "Dodatno, korisnici tastature će u bilo kom trenutku pronaći menije za preskakanje sadržaja klikom na Alt+2, ili kao prvi element sajta dok se kreću tastaturom. Proces u pozadini takođe upravlja popup prozorima pomjerajući fokus tastature prema njima čim se pojave, ne dopuštajući da fokus odluta.",
+        additionalAdjustmentsText: "Korisnici mogu koristiti prečice kao što su M (meniji), H (naslovi), F (forme), B (dugmad) i G (grafika) da bi prešli na određene elemente.",
+        assistiveTechCompatibilityText: "Nastojimo podržati što više pregledača i pomoćnih tehnologija, tako da naši korisnici mogu izabrati najpogodnije alate za sebe, sa što manje ograničenja. Stoga smo veoma marljivo radili da bismo mogli podržati sve glavne sisteme koji čine preko 95% udjela na tržištu korisnika, uključujući Google Chrome, Mozilla Firefox, Apple Safari, Opera i Microsoft Edge, JAWS i NVDA (čitači ekrana), i za Windows i MAC korisnike.",
+        notesFeedbackText: "Uprkos našim najboljim naporima da omogućimo bilo kome da prilagodi veb stranicu svojim potrebama, možda još uvijek postoje stranice ili dijelovi koji nisu u potpunosti pristupačni, koji su u procesu postajanja pristupačni ili kojima nedostaje adekvatno tehnološko rješenje da bi ih učinili pristupačnim. Ipak, neprestano poboljšavamo našu pristupačnost, dodajemo, ažuriramo, poboljšavamo njene opcije i funkcije i razvijamo i usvajamo nove tehnologije. Sve ovo ima za cilj postizanje optimalnog nivoa pristupačnosti prateći tehnološke napretke. Ako želite kontaktirati vlasnika veb stranice, koristite obrazac na veb stranici",
+        screenReaderOptimizationDetails: "Komponente veb sajta od vrha do dna, kako bi se osigurala kontinuirana usaglašenost čak i pri ažuriranju sajta. U ovom procesu, pružamo čitačima ekrana smislene podatke koristeći skup ARIA atributa. Na primjer, pružamo tačne natpise za forme; opise za ikone na koje se može kliknuti (ikone društvenih mreža, ikona za pretragu, ikona korpe, itd.); smjernice za validaciju unosa u forme; uloge elemenata kao što su dugmad, meniji, modali (popupovi) i drugi. Osim toga, proces u pozadini skenira sve slike na veb sajtu. Obezbjeđuje tačan i smislen opis slike baziran na prepoznavanju objekata kao ALT (alternativni tekst) oznaku za slike koje nisu opisane. Takođe će izdvojiti tekstove ugrađene u sliku koristeći OCR (optičko prepoznavanje karaktera) tehnologiju. Da biste uključili podešavanja za čitače ekrana u bilo kom trenutku, korisnici treba samo da pritisnu kombinaciju tipki Alt+1. Korisnicima čitača ekrana takođe stižu automatske obavijesti da uključe režim čitača ekrana čim uđu na veb sajt. Ova podešavanja su kompatibilna sa popularnim čitačima ekrana kao što su JAWS, NVDA, VoiceOver i TalkBack.",
+        disabilityProfilesTitle: "Profili invaliditeta podržani na našem sajtu",
+        epilepsySafeProfileDesc: "ovaj profil omogućava osobama sa epilepsijom da bezbedno koriste veb stranicu eliminišući rizik od napada usled treptajućih animacija i rizičnih kombinacija boja.",
+        visionImpairedProfileDesc: "ovaj profil prilagođava veb stranicu tako da bude dostupna većini vidnih oštećenja kao što su slabljenje vida, tunelski vid, katarakta, glaukom i drugi.",
+        cognitiveDisabilityProfileDesc: "ovaj profil pruža razne pomoćne funkcije da pomogne korisnicima sa kognitivnim smetnjama kao što su autizam, disleksija, moždani udar i drugi da se lakše fokusiraju na osnovne elemente.",
+        adhdFriendlyProfileDesc: "ovaj profil značajno smanjuje ometanja i buku da pomogne osobama sa ADHD-om i neurorazvojnim poremećajima da pregledaju, čitaju i fokusiraju se na osnovne elemente lakše.",
+        blindUsersProfileDesc: "ovaj profil prilagođava veb stranicu da bude kompatibilna sa čitačima ekrana kao što su JAWS, NVDA, VoiceOver i TalkBack. Čitač ekrana je instaliran na računaru slijepog korisnika, a ovaj sajt je kompatibilan sa njim.",
+        keyboardNavigationProfileDesc: "ovaj profil omogućava osobama sa motoričkim oštećenjima da upravljaju veb stranicom koristeći tipke Tab, Shift+Tab i Enter. Korisnici mogu takođe koristiti prečice kao što su M (meniji), H (naslovi), F (forme), B (dugmad) i G (grafika) da pređu na određene elemente.",
+        uiAdjustmentsTitle: "Dodatna podešavanja interfejsa, dizajna i čitljivosti",
+        additionalFunctionsTitle: "Dodatne funkcije",
+        additionalFunctionsDesc: "omogućavamo korisnicima da promijene boju i veličinu kursora, koriste režim štampanja, omoguće virtuelnu tastaturu i mnoge druge funkcije."
+    }
+};
+
+
+function detectActiveLanguage() {
+    //const validLangs = ['ci', 'en', 'la'];
+    //const presentLangs = [];
+    
+    //document.querySelectorAll('[class*="lang-item-"]').forEach(element => {
+
+    //    const langClasses = Array.from(element.classList).filter(c => c.startsWith('lang-item-'));
+        
+      //  langClasses.forEach(className => {
+        //    const langCode = className.split('lang-item-')[1];
+          //  if (validLangs.includes(langCode)) {
+            //    presentLangs.push(langCode);
+           // }
+        //});
+    //});
+    
+   // const activeLang = validLangs.find(lang => !presentLangs.includes(lang));
+    
+   // return activeLang || 'ci';
+
+    const htmlLang = document.documentElement.lang;
+    const langMap = {
+        'cnr-Cyrl-ME': 'ci',
+        'cnr-Latn-ME': 'la',
+        'en-US': 'en'
+    };
+
+    return langMap[htmlLang] || 'ci';
+}
+
+function applyTranslations(lang) {
+    //document.querySelectorAll('[data-i18n]').forEach(el => {
+       // const key = el.dataset.i18n;
+       // if (translations[lang]?.[key]) {
+       //     el.textContent = translations[lang][key];
+       // }
+   // });
+
+    const normalizedLang = detectActiveLanguage();
+    
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (translations[normalizedLang]?.[key]) {
+            el.textContent = translations[normalizedLang][key];
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+   // const activeLang = detectActiveLanguage();
+    //applyTranslations(activeLang);
+ // Set initial translations
+
+    applyTranslations();
+    
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (mutation.attributeName === 'lang') {
+                applyTranslations();
+            }
+        });
+    });
+
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['lang']
+    });
+});
